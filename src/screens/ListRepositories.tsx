@@ -5,22 +5,35 @@ import Repositories from '../api/Repositories';
 interface IState {
     isLoading: boolean;
     repositories: any[];
+    page: number;
 }
 
 export default class ListRepositories extends React.Component<any, IState> {
 
     constructor(props) {
         super(props);
-        this.state = { isLoading: true, repositories: [] }
+        this.state = { isLoading: true, repositories: [], page: 1 }
     }
 
-    componentDidMount() {
-        return fetch('https://api.github.com/orgs/bamlab/repos?page=1')
+    handleLoadMore = () => {
+        this.setState({
+            page: this.state.page + 1
+        }, () => {
+            this.loadRepositories();
+        });
+    };
+
+    loadRepositories() {
+        const page = this.state.page;
+        const repositories = this.state.repositories;
+        this.setState({ ...this.state, isLoading: true });
+        return fetch('https://api.github.com/orgs/bamlab/repos?page=${page}')
             .then((response) => response.json())
             .then((responseJson) => {
+                console.log(page);
                 this.setState({
                     isLoading: false,
-                    repositories: responseJson,
+                    repositories: page === 1 ? responseJson : [...responseJson, ...repositories]
                 }, function () {
 
                 });
@@ -31,6 +44,9 @@ export default class ListRepositories extends React.Component<any, IState> {
             });
     }
 
+    componentDidMount() {
+        this.loadRepositories();
+    }
 
     render() {
         if (this.state.isLoading) {
@@ -43,12 +59,18 @@ export default class ListRepositories extends React.Component<any, IState> {
 
         return (
             <View>
-                <Text> First page for now ...</Text>
-                <FlatList
+                {this.state.repositories && <FlatList
                     data={this.state.repositories}
                     renderItem={({ item }) => <Text style={styles.item}>{item.name}</Text>}
-                    keyExtractor={(item) => item.id.toString()}
-                />
+                    keyExtractor={(item, index) => String(index)}
+                    onEndReached={this.handleLoadMore}
+                    onEndReachedThreshold={0}
+                />}
+                {this.state.isLoading &&
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color="#ff6a00" />
+                    </View>
+                }
             </View>
         );
     }
