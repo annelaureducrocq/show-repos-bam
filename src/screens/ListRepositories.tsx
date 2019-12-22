@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { View, FlatList, Text, StyleSheet, ActivityIndicator } from "react-native";
-import Repositories from '../api/Repositories';
 
 interface IState {
     isLoading: boolean;
     repositories: any[];
     page: number;
+    isRefreshing: boolean;
 }
 
 export default class ListRepositories extends React.Component<any, IState> {
 
     constructor(props) {
         super(props);
-        this.state = { isLoading: true, repositories: [], page: 1 }
+        this.state = { isLoading: true, isRefreshing: false, repositories: [], page: 1 }
     }
 
     handleLoadMore = () => {
@@ -22,6 +22,15 @@ export default class ListRepositories extends React.Component<any, IState> {
             this.loadRepositories();
         });
     };
+
+    handleRefresh = () => {
+        this.setState({
+            isRefreshing: true
+        }, () => {
+            this.loadRepositories();
+        });
+    };
+
 
     loadRepositories() {
         const page = this.state.page;
@@ -33,6 +42,7 @@ export default class ListRepositories extends React.Component<any, IState> {
                 console.log(page);
                 this.setState({
                     isLoading: false,
+                    isRefreshing: false,
                     repositories: page === 1 ? responseJson : [...responseJson, ...repositories]
                 }, function () {
 
@@ -60,11 +70,14 @@ export default class ListRepositories extends React.Component<any, IState> {
         return (
             <View>
                 {this.state.repositories && <FlatList
+                    contentContainerStyle={{ flex: 0 }}
                     data={this.state.repositories}
                     renderItem={({ item }) => <Text style={styles.item}>{item.name}</Text>}
                     keyExtractor={(item, index) => String(index)}
                     onEndReached={this.handleLoadMore}
                     onEndReachedThreshold={0}
+                    refreshing={this.state.isRefreshing}
+                    onRefresh={this.handleRefresh}
                 />}
                 {this.state.isLoading &&
                     <View style={{ flex: 1, alignItems: 'center' }}>
